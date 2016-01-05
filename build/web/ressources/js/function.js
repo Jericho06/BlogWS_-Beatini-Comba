@@ -1,0 +1,262 @@
+jQuery(document).ready(function($){
+    // Ce code est appelée quand la page est chargée ou reloadée
+    // On charge les 5 derniers articles (ou moins) depuis le web service
+    
+    // On cache le bouton de sauvegarde des modifications pour chaque article
+    $("#update-article").hide();
+    
+    $("#map").hide();
+
+    // URL du WS et fonction de callback en cas de succ-s
+    $.get("/BlogWS2015/resources/article/0/5",function(data){
+        
+        var i = 0;
+        // no article ?
+        if(data != null) {
+            // The json returned by the WebService looks like this: (use JS debug console
+            // in your browser !
+            // CAS 1: un seul article: 
+            // {"article":{"content":"Voici une photo de Rome cet été...",
+            //             "id":"2","time":"2012-12-19T16:30:47.612+01:00",
+            //             "titre":"Photos de vacances"}
+            // }
+            // CAS 2 : plusieurs articles
+            // {"article":[
+            //      {"content":"Voici une photo de Rome cet été...",
+            //       "id":"2","time":"2012-12-19T16:30:47.612+01:00",
+            //       "titre":"Photos de vacances"},
+            //      {"content":"Second contenu",
+            //       "id":"3","time":"2012-12-19T16:32:25.717+01:00",
+            //       "titre":"Second titre"}
+            //       ]}
+            // Quand il y en a plusieurs, on a un tableau [...]
+            // Mais la méthode each de jQuery traite indifféremment les deux cas. 
+            // merci jQuery.
+            $(data).each(function(){
+                i++
+                console.log(data);
+                console.log(this.images);
+                $("#list-article").prepend(renderItem(this.id, this.titre, this.content, this.time, this.images));
+            });
+            if(i==0)
+                showWelcome();
+        
+            // Si on est venu ici après une suppression on supprime le lien
+            // "load more"
+            if(removeLoadMore()){
+                $("#loadmore").remove();
+                console.log("DELETE");
+            }else
+            {
+                // Si on vient ici après la publication d'un nouvel article on
+                // fait apparitre le bouton "load more"
+                console.log("INSERT");
+                $("<div id='loadmore'><a href='#' id='load' >J'en veux plus !</a></div>").insertAfter("#list-article");
+            }
+        }
+    },"json");
+    
+    
+    // Si on clique sur le bouton "publier". L'utilisation de live() permet
+    // de binder des events sur des éléments qui n'existent peut être pas encore
+    $("#write").on('click',function(){
+        // On récupère le contenu du formulaire en JSON
+        var data = $("#myForm").serializeArray();
+        
+        
+        console.log("funtion : " + filesUploadedNames);
+        
+         data.push({
+            name: "files",
+            value: filesUploadedNames
+        });
+
+       
+        
+        // On fait un POST sur le web service d'insertion
+        $.post("/BlogWS2015/resources/article",data,function(d){
+            $("#myForm").each(function(){
+                this.reset();
+            });
+            // On ajoute l'article dans la page
+            $.get(d,function(data){
+                $("#list-article").prepend(renderItem(data.id, data.titre, data.content, data.time, data.images));  
+            });
+        });
+       
+       // Il y a au moins un article, on supprime le message de bienvenue
+        $("#welcome").remove();
+       
+        if(removeLoadMore()){
+            $("#loadmore").remove();
+        }
+
+    });
+
+
+    // Clic sur le bouton delete pour supprimer un article
+    $("#list-article").on("click", "a.delete",function(){
+
+        var id = $(this).attr("href");
+        console.log(id);
+
+        $.ajax(id,
+        {
+            type:"DELETE",
+            success: function(d){
+                $("#article-"+d).slideUp('slow',function(){
+                    $(this).remove()
+                    });
+            }
+        });
+        
+        if(removeLoadMore()){
+            $("#loadmore").remove();
+        }
+        
+        return false;
+
+    });
+
+    // Click sur un titre d'article
+    $("#list-article").on("click","a.title",function(){
+        var url = $(this).attr("href");
+
+        $(document).scrollTop($(document).height());
+
+        $.get(url,function(data){
+
+            $("#formupdate-article #titre").val(data.titre);
+            $("#formupdate-article #content").val(data.content);
+            $("#formupdate-article #id").val(data.id);
+
+            $("#write-article").hide();
+            $("#update-article").show();
+        });
+        
+        if(removeLoadMore()){
+            $("#loadmore").remove();
+        }
+
+        return false;
+    });
+
+
+    $("#reset").on("click",function(){
+        
+         $("#update-article").hide();
+         $("#write-article").show();
+         
+    
+    });
+    // Clic sur le bouton update pour modifier un article
+    $("#update").on("click",function(){
+
+        var data = $("#formupdate-article").serializeArray();
+        console.log(data);
+        
+        $.ajax({
+            url: "/BlogWS2015/resources/article",
+            type:"PUT",
+            data: data,
+            success: function(d){
+                $("#formupdate-article").each(function(){
+                    this.reset();
+                });
+
+                updateRenderedItem(d.id, d.titre, d.content, d.time, d.images)
+
+                $("#update-article").hide();
+                $("#write-article").show();
+
+            }
+
+        });
+
+        if(removeLoadMore()){
+            $("#loadmore").remove();
+        }
+
+    });
+
+    // clic sur le lien "load more"
+    $("#load").on("click",function(){
+        $("#loadmore").remove();
+        var count = $("#list-article").children().length;
+        var limit = count+5;
+
+        $.get("/BlogWS2015/resources/article/"+count+"/"+limit,function(data){
+          
+
+            $(data).each(function(){
+               
+                $("#list-article").append(renderItem(this.id, this.titre, this.content, this.time, this.images));
+            });
+            if(removeLoadMore()){
+                $("#loadmore").remove();
+            }else{
+                $("<div id='loadmore'><a href='#' id='load' >J'en veux plus !</a></div>").insertAfter("#list-article");
+            }
+        },"json");
+    });
+    
+
+    function removeLoadMore()
+    {
+        $.get("/BlogWS2015/resources/article/count",function(data){
+            var i = $("#list-article").children().length;
+            console.log("dans la bd : "+data+" | sur le site : "+i);
+            if(data == i){
+                return true;
+            }else
+                return false;
+        });
+    }
+
+    // creation et ajout d'un article dans la page
+    function renderItem(id, titre, content, date, images)
+    {
+        var urlImage = "/uploadedImages/";
+        var myDate = new Date( date );
+        var imgs = ""; 
+        var strDate = "";
+        strDate += myDate.getUTCDate()+"/"+myDate.getMonth()+"/"+myDate.getFullYear();
+        strDate += " 	&agrave; "+myDate.getHours()+":"+myDate.getMinutes();
+       
+        for(i = 0; i<images.length;i++){
+            imgs += '<img src="'+urlImage+images[i]+'" /> <br/>';
+        }
+        result = "<div class='article' id='article-"+id+"'>\
+                <h2>"+titre+"</h2></a>\
+                <p class='content'>"+content+"</p><br/>"+imgs+"<div class='postmeta'>\n\
+                    <p class='alignleft'>Article publi&eacute; le "+strDate+"</p>\n\
+                    <p class='alignright'>\n\
+                        <a class='button blue delete' href='/BlogWS2015/resources/article/"+id+"'>Supprimer</a>\n\
+                        <a href='/BlogWS2015/resources/article/"+id+"' class='button blue title'>Modifier</a>\
+                    </p></div>\n\
+                    <div class='clearfix'></div>\
+                </div>";
+        return result;
+    }
+    
+
+    function updateRenderedItem(id, titre, content)
+    {
+        console.log(id);
+
+        $("#article-"+id+" h2").html(titre);
+        $("#article-"+id+" .title").attr("rel","/BlogWS2015/resources/article/"+id);
+        $("#article-"+id+" .content").html(content);
+
+        $("#article-"+id).css("background-color","#E3F6CE");
+        window.setTimeout(function() {  
+            $("#article-"+id).css("background-color","white");
+        }, 1000); 
+
+    }
+    
+    function showWelcome(){
+        $("#list-article").html("<div id='welcome'>Aucun article n'est pr&eacute;sent.<br />Voulez-vous &ecirc;tre le premier ?</div>");
+    }
+
+});
