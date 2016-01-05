@@ -121,36 +121,6 @@ function sendFormDataWithXhr2(url, data) {
     xhr.send(data);
 }
 
-
-$(document).ready(function () {
-    $("#map").hide();
-});
-
-function geoloc() {
-    console.log("Nous allons vous trouver Luke Skywalker...");
-    navigator.geolocation.getCurrentPosition(showMap);
-}
-
-function showMap(position) {
-
-    console.log("Affichage de la carte");
-    var myLatLng = {lat: position.coords.latitude, lng: position.coords.longitude};
-
-    var map = new google.maps.Map(document.getElementById('map'), {
-        center: myLatLng,
-        scrollwheel: false,
-        zoom: 15
-    });
-
-    var marker = new google.maps.Marker({
-        map: map,
-        position: myLatLng,
-        title: 'Je suis ici'
-    });
-
-    $("#map").show();
-}
-
 function fichierSelectionner(event) {
 
     var files = event.target.files;
@@ -165,6 +135,8 @@ function fichierSelectionner(event) {
                     filesUploaded.push(e.target.result);
                     filesUploadedNames.push(file.name);
 
+                   
+                    // On regarde l'état du fichier inséré
                     console.log("fichier ajouté");
                 } else {
                     console.log("fichier déjà existant");
