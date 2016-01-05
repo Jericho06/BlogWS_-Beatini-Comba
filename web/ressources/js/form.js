@@ -4,18 +4,19 @@
  * and open the template in the editor.
  */
 
-var myForm, fileSelector, progress;
 var url = "/BlogWS2015/resources/files/upload";
 
 var position;
 var filesUploaded = [];
 var filesUploadedNames = [];
 
+/*****Partie drag and drop******/
+
 $(document).ready(function () {
 
     var dropZone = document.getElementById('dropZone');
 
-    // Optional.   Show the copy icon when dragging over.  Seems to only work for chrome.
+
     dropZone.addEventListener('dragover', function (e) {
         e.stopPropagation();
         e.preventDefault();
@@ -60,9 +61,9 @@ $(document).ready(function () {
 });
 
 window.onload = function () {
-    myForm = document.querySelector("#myForm");
-    fileSelector = document.querySelector("#fileSelector");
-    progress = document.querySelector("#progress");
+    var myForm = document.querySelector("#myForm");
+    var fileSelector = document.querySelector("#fileSelector");
+    var progress = document.querySelector("#progress");
 
 }
 function sendForm() {
@@ -120,6 +121,8 @@ function sendFormDataWithXhr2(url, data) {
     // send the request
     xhr.send(data);
 }
+
+/*****Partie selection d'image******/
 
 function fichierSelectionner(event) {
 
