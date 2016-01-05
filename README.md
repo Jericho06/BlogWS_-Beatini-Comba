@@ -27,6 +27,7 @@ Notre projet permet d'écrire des articles accompagnés d'une ou plusieurs image
 Vous devez obligatoirement remplir les champs Titre et Contenu.
 Vous pouvez insérer les images soit par clic sur le bouton "parcourir", soit en les glissants dans le canvas orange.
 Cliquez sur Envoyer lorsque vous avez fini d'écrire votre article.
+Vous avez la possibilité de supprimer ou de modifier l'article après l'avoir ajouté.
 
 
 
